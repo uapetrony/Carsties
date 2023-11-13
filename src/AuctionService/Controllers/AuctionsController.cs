@@ -15,11 +15,20 @@ public class AuctionsController: ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<AuctionDto>>> GetAllAuctions()
+    public async Task<ActionResult<List<AuctionDto>>> GetAllAuctions(string? date)
     {
-        var auctions = await _context.Auctions
-            .Include(x => x.Item)
+        var query = _context.Auctions
             .OrderBy(x => x.Item.Make)
+            .AsQueryable();
+
+        if (DateTime.TryParse(date, out var parsedDate))
+        {
+            var utcDate = parsedDate.ToUniversalTime();
+            query = query.Where(x => x.UpdatedAt.CompareTo(utcDate) > 0);
+        }
+
+        var auctions = await query
+            .Include(x => x.Item)
             .Select(x => x.ToAuctionDto())
             .ToListAsync();
 
